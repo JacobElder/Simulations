@@ -1,0 +1,138 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+simulateLM <- function(b0,b1,b2,e){
+
+N <- 50
+x1=rnorm(N,7,5)
+x2=rnorm(N,50,15)
+error=rnorm(N,0,e)
+dv=b0+(b1*x1)+(b2*x2)+error
+
+return(cbind(x1,x2,dv))
+
+}
+```
+
+```{r}
+set.seed(123)
+iter<-100
+pMat <- matrix(ncol=2,nrow=iter)
+for(t in 1:iter){
+  subjects<-100
+  b1 <- -2
+  finalDf <- matrix(nrow=subjects*N,ncol=4)
+  step1 <- 1
+  step2 <- 50
+  for(i in 1:subjects){
+    b1 <- b1 + .04
+    curDf <- cbind(subID=i,simulateLM(b0=25,b1=b1,b2=1.2,e=25))
+    curDf[,3] <- curDf[,3] + rnorm(1,0,10)
+    finalDf[step1:step2, 1:4] <- curDf
+    step1 <- step1+N
+    step2 <- step2+N
+  }
+  finalDf<-as.data.frame(finalDf)
+  finalDf <- cbind(finalDf, ifelse(finalDf[,1]%%2==0, "Control","Treatment"))
+  colnames(finalDf) <- c("subID","x1","x2","DV","Condition")
+  finalDf[2:4] <- apply(finalDf[2:4], 2, scale)
+  
+  wo <- lmer(DV ~ x1 + x2 + (1 | subID), data= finalDf)
+  summary(wo)
+  
+  ws <- lmer(DV ~ x1 + x2 + (x1 | subID), data= finalDf)
+  summary(ws)
+  woP <- summary(wo)$coef[14]
+  wsP <- summary(ws)$coef[14]
+  pMat[t, ] <- c(woP, wsP)
+}
+```
+
+```{r}
+set.seed(123)
+iter<-100
+pMat <- matrix(ncol=2,nrow=iter)
+for(t in 1:iter){
+  subjects<-100
+  TrueB1 <- 2.0
+  increment <- TrueB1/subjects
+  b1 <- 0
+  finalDf <- matrix(nrow=subjects*N,ncol=4)
+  step1 <- 1
+  step2 <- 50
+  for(i in 1:subjects){
+    b1 <- b1 + increment
+    curDf <- cbind(subID=i,simulateLM(b0=25,b1=b1,b2=1.2,e=10))
+    curDf[,3] <- curDf[,3] + rnorm(1,0,10)
+    finalDf[step1:step2, 1:4] <- curDf
+    step1 <- step1+N
+    step2 <- step2+N
+  }
+  finalDf<-as.data.frame(finalDf)
+  finalDf <- cbind(finalDf, ifelse(finalDf[,1]%%2==0, "Control","Treatment"))
+  colnames(finalDf) <- c("subID","x1","x2","DV","Condition")
+  finalDf[2:4] <- apply(finalDf[2:4], 2, scale)
+  
+  wo <- lmer(DV ~ x1 + x2 + (1 | subID), data= finalDf)
+  summary(wo)
+  
+  ws <- lmer(DV ~ x1 + x2 + (x1 | subID), data= finalDf)
+  summary(ws)
+  woP <- summary(wo)$coef[14]
+  wsP <- summary(ws)$coef[14]
+  pMat[t, ] <- c(woP, wsP)
+}
+```
+
+```{r}
+set.seed(123)
+iter<-100
+pMat <- matrix(ncol=2,nrow=iter)
+for(t in 1:iter){
+  subjects<-100
+  TrueB1 <- 0
+  increment <- .02
+  b1 <- -1
+  b1t <- 0
+  b1c <- 0
+  finalDf <- matrix(nrow=subjects*N,ncol=5)
+  step1 <- 1
+  step2 <- 50
+  for(i in 1:subjects){
+    b1 <- b1 + increment
+    if(i%%2){
+      b1c <- b1c - increment
+      b1 <- b1c
+      cond <- 0
+    }else{
+      b1t <- b1t + increment
+      b1 <- b1t
+      cond <- 1
+    }
+    curDf <- cbind(subID=i,simulateLM(b0=25,b1=b1,b2=1.2,e=10),cond)
+    curDf[,3] <- curDf[,3] + rnorm(1,0,10)
+    finalDf[step1:step2, 1:5] <- curDf
+    step1 <- step1+N
+    step2 <- step2+N
+  }
+  finalDf<-as.data.frame(finalDf)
+  colnames(finalDf) <- c("subID","x1","x2","DV","Condition")
+  finalDf[2:4] <- apply(finalDf[2:4], 2, scale)
+  
+  wo <- lmer(DV ~ x1*as.factor(Condition) + x2 + (1 | subID), data= finalDf)
+  summary(wo)
+  
+  ws <- lmer(DV ~ x1*as.factor(Condition) + x2 + (x1 | subID), data= finalDf)
+  summary(ws)
+  woP <- summary(wo)$coef[25]
+  wsP <- summary(ws)$coef[25]
+  pMat[t, ] <- c(woP, wsP)
+}
+```
+
+
+
+
