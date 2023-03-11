@@ -1,0 +1,66 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+x <- c("Sample", "TrueR", "ObsR", "PowObs", "PowTrue")
+
+Samp <- c(10:1000)
+TrueR <- c(.15, .30, .45, .60)
+DV1_Rel <- c(.80)
+DV2_Rel <- c(.45)
+
+N <- length(Samp) * length(TrueR)
+mat <- matrix(ncol=length(x), nrow = N)
+
+iter <- 1
+
+  for(j in 1:length(TrueR)){
+    jt <- TrueR[j]
+    
+    for(k in Samp){
+
+      obsCor <- jt * sqrt(DV1_Rel * DV2_Rel)
+      powerOut <- pwr::pwr.r.test(n = k, r = obsCor)
+      powerOut2 <- pwr::pwr.r.test(n = k, r = jt)
+      powObs <- powerOut$power
+      powTrue <- powerOut2$power
+      
+      mat[iter,] <- c(k, jt, obsCor, powObs, powTrue)
+      
+      iter <- iter + 1
+      
+    }
+  }
+
+colnames(mat) <- x
+df <- as.data.frame(mat)
+  
+
+```
+
+# Power Curve for Different Effect Sizes
+
+One effect size has reliability of .80 and one effect size has reliability of .45.
+
+The dotted line depicts what your sensitivity would be under ideal circumstances if everything was perfectly reliable. The solid line depicts what your power is in actuality when you take into consideration the .45 and .80 reliability.
+
+You can see that the observed power (dotted) hits 80% power at much large samples due to its measures' lower reliability.
+
+```{r}
+ggplot(df, aes(x=Sample, y=PowObs, color=as.factor(TrueR) )) +
+    geom_line() +
+  geom_line(aes(y=PowTrue),linetype="dashed") +
+  geom_hline(yintercept=.80, linetype="dashed", 
+                color = "black", size=.5)
+```
+
+
